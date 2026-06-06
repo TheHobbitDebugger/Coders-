@@ -1,36 +1,95 @@
 <section class="controls">
   <label>
-    Dispositivo
-    <select [(ngModel)]="selectedDevice" (change)="loadChartAndReadings()">
+    Reparto
+    <select class="ctrl-select" [(ngModel)]="selectedLab" (change)="onLabChange()">
       <option [ngValue]="null">Tutti</option>
-      <option *ngFor="let device of devices" [ngValue]="device.device_id">{{ device.device_id }}</option>
+        <option *ngFor="let rep of reparti" [ngValue]="rep">{{ rep }}</option>
+    </select>
+  </label>
+  <label>
+    Dispositivo
+    <select class="ctrl-select" [(ngModel)]="selectedDevice" (change)="loadChartAndReadings()">
+      <option [ngValue]="null">Tutti</option>
+      <option *ngFor="let device of filteredDevices" [ngValue]="device.device_id">{{ device.device_id }}</option>
     </select>
   </label>
   <label>
     Metrica
-    <select [(ngModel)]="selectedMetric" (change)="loadChartAndReadings()">
+    <select class="ctrl-select" [(ngModel)]="selectedMetric" (change)="loadChartAndReadings()">
       <option value="temperatura">Temperatura</option>
       <option value="vibrazione">Vibrazione</option>
       <option value="livello_azoto">Livello azoto</option>
     </select>
   </label>
+  <label class="date-label">
+    Da
+    <span class="date-picker-wrap">
+      <input type="text" class="date-display" [value]="displayFrom || 'Seleziona...'" readonly (click)="openPicker('from'); $event.stopPropagation()" />
+      <button *ngIf="displayFrom" type="button" class="date-clear" (click)="clearPicker(); $event.stopPropagation()">&times;</button>
+      <div *ngIf="pickerOpen === 'from'" class="picker-panel" (click)="$event.stopPropagation()">
+        <input type="date" class="picker-date" [(ngModel)]="pickerDate" />
+        <div class="picker-time">
+          <input type="number" min="0" max="23" [(ngModel)]="pickerHour" placeholder="HH" class="picker-hh" />
+          <span>:</span>
+          <input type="number" min="0" max="59" [(ngModel)]="pickerMin" placeholder="MM" class="picker-mm" />
+        </div>
+        <button type="button" class="picker-confirm" (click)="confirmPicker()">Conferma</button>
+      </div>
+    </span>
+  </label>
+  <label class="date-label">
+    A
+    <span class="date-picker-wrap">
+      <input type="text" class="date-display" [value]="displayTo || 'Seleziona...'" readonly (click)="openPicker('to'); $event.stopPropagation()" />
+      <button *ngIf="displayTo" type="button" class="date-clear" (click)="clearPicker(); $event.stopPropagation()">&times;</button>
+      <div *ngIf="pickerOpen === 'to'" class="picker-panel" (click)="$event.stopPropagation()">
+        <input type="date" class="picker-date" [(ngModel)]="pickerDate" />
+        <div class="picker-time">
+          <input type="number" min="0" max="23" [(ngModel)]="pickerHour" placeholder="HH" class="picker-hh" />
+          <span>:</span>
+          <input type="number" min="0" max="59" [(ngModel)]="pickerMin" placeholder="MM" class="picker-mm" />
+        </div>
+        <button type="button" class="picker-confirm" (click)="confirmPicker()">Conferma</button>
+      </div>
+    </span>
+  </label>
 </section>
 
-<section class="grid">
-  <article class="panel chart-panel" *ngIf="!selectedDeviceDetail">
-    <div class="panel-head">
-      <h2>Andamento sensori</h2>
-      <span>{{ selectedMetric }}</span>
-    </div>
+<nav class="tab-bar">
+  <button type="button" [class.active]="activeTab === 'chart'" (click)="setTab('chart')">Andamento Sensori</button>
+  <button type="button" [class.active]="activeTab === 'letture'" (click)="setTab('letture')">Ultime Letture</button>
+  <button type="button" [class.active]="activeTab === 'alert'" (click)="setTab('alert')">Alert</button>
+</nav>
+
+<section class="grid" *ngIf="activeTab === 'chart'">
+  <article class="panel chart-panel">
     <canvas #chartCanvas></canvas>
+  </article>
+
+  <article class="panel device-panel" *ngIf="!selectedDeviceDetail">
+    <div class="panel-head">
+      <h2>Dispositivi</h2>
+      <span>{{ filteredDevices.length }}</span>
+    </div>
+    <div class="device-list">
+      <button
+        type="button"
+        *ngFor="let device of filteredDevices"
+        [class.active]="device.device_id === selectedDevice"
+        (click)="selectDevice(device.device_id); $event.stopPropagation()"
+      >
+        <strong>{{ device.device_id }}</strong>
+        <span>{{ device.reparto }}</span>
+        <em [class.has-critical]="device.critical_count > 0">C {{ device.critical_count }} / W {{ device.warning_count }}</em>
+      </button>
+    </div>
   </article>
 
   <article class="panel detail-panel" *ngIf="selectedDeviceDetail as detail">
     <div class="panel-head">
       <h2>Dettaglio Dispositivo</h2>
-      <button type="button" class="detail-close" (click)="closeDetail()" title="Chiudi dettaglio">&times;</button>
+      <button type="button" class="detail-close" (click)="closeDetail(); $event.stopPropagation()" title="Chiudi dettaglio">&times;</button>
     </div>
-
     <div class="detail-content">
       <div class="detail-header">
         <div class="detail-title">
@@ -38,11 +97,8 @@
           <span class="detail-type">{{ getDeviceTypeConfig(detail.device_type).label }}</span>
           <span class="detail-reparto">{{ detail.reparto }}</span>
         </div>
-        <span class="status detail-status" [class]="getSeverityClass(latestReading ? getWorstParameterSeverity() : 'ok')">
-          {{ getSeverityLabel(latestReading ? getWorstParameterSeverity() : 'ok') }}
-        </span>
+        <span class="status detail-status" [class]="getSeverityClass(latestReading ? getWorstParameterSeverity() : 'ok')">{{ getSeverityLabel(latestReading ? getWorstParameterSeverity() : 'ok') }}</span>
       </div>
-
       <div class="detail-metrics" *ngIf="latestReading">
         <div class="metric-card" [class]="getSeverityClass(getParameterSeverity(detail.device_type, 'Temperatura', latestReading.temperatura))">
           <span class="metric-label">Temperatura</span>
@@ -60,55 +116,72 @@
           <span class="metric-status">{{ getSeverityLabel(getParameterSeverity(detail.device_type, 'Livello Azoto', latestReading.livello_azoto)) }}</span>
         </div>
       </div>
-
       <div class="detail-thresholds">
         <h3>Soglie di Riferimento — {{ getDeviceTypeConfig(detail.device_type).label }}</h3>
         <div class="thresholds-grid">
           <div class="threshold-header">
-            <span>Parametro</span>
-            <span class="th-ok">NORMALE</span>
-            <span class="th-warning">WARNING</span>
-            <span class="th-critical">CRITICO</span>
+            <span>Parametro</span><span class="th-ok">NORMALE</span><span class="th-warning">WARNING</span><span class="th-critical">CRITICO</span>
           </div>
           <div class="threshold-row" *ngFor="let rule of getDeviceTypeConfig(detail.device_type).thresholds">
-            <span class="th-param">{{ rule.parameter }} ({{ rule.unit }})</span>
-            <span class="th-ok">{{ rule.normal }}</span>
-            <span class="th-warning">{{ rule.warning }}</span>
-            <span class="th-critical">{{ rule.critical }}</span>
+            <span class="th-param">{{ rule.parameter }} ({{ rule.unit }})</span><span class="th-ok">{{ rule.normal }}</span><span class="th-warning">{{ rule.warning }}</span><span class="th-critical">{{ rule.critical }}</span>
           </div>
         </div>
       </div>
-
       <div class="detail-actions" *ngIf="getActionPlans().length > 0">
         <h3>Piano d'Azione</h3>
         <div class="action-plan" *ngFor="let plan of getActionPlans()">
           <h4>{{ plan.title }}</h4>
-          <ol>
-            <li *ngFor="let step of plan.steps">{{ step }}</li>
-          </ol>
+          <ol><li *ngFor="let step of plan.steps">{{ step }}</li></ol>
         </div>
       </div>
     </div>
   </article>
+</section>
 
-  <article class="panel device-panel">
-    <div class="panel-head">
-      <h2>Dispositivi</h2>
-      <span>{{ devices.length }}</span>
-    </div>
-    <div class="device-list">
-      <button
-        type="button"
-        *ngFor="let device of devices"
-        [class.active]="device.device_id === selectedDevice"
-        (click)="selectDevice(device.device_id)"
-      >
-        <strong>{{ device.device_id }}</strong>
-        <span>{{ device.reparto }}</span>
-        <em [class.has-critical]="device.critical_count > 0">
-          C {{ device.critical_count }} / W {{ device.warning_count }}
-        </em>
-      </button>
-    </div>
-  </article>
+<section class="panel full-panel" *ngIf="activeTab === 'letture'">
+  <div class="panel-head">
+    <h2>Ultime Letture</h2>
+    <span>{{ filteredReadings.length }} risultati</span>
+  </div>
+  <div class="full-table-wrap">
+    <table>
+      <thead>
+        <tr><th>Timestamp</th><th>Dispositivo</th><th>Temperatura</th><th>Vibrazione</th><th>Livello Azoto</th><th>Stato</th></tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let row of filteredReadings">
+          <td>{{ formatTimestamp(row.timestamp) }}</td>
+          <td>{{ row.device_id }}</td>
+          <td>{{ row.temperatura !== null ? (row.temperatura | number:'1.1-1') + ' °C' : '-' }}</td>
+          <td>{{ row.vibrazione !== null ? (row.vibrazione | number:'1.3-3') + ' mm/s' : '-' }}</td>
+          <td>{{ row.livello_azoto !== null ? (row.livello_azoto | number:'1.1-1') + ' %' : '-' }}</td>
+          <td><span class="status" [class]="row.stato_dispositivo.toLowerCase()">{{ row.stato_dispositivo }}</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="panel full-panel" *ngIf="activeTab === 'alert'">
+  <div class="panel-head">
+    <h2>Storico Alert</h2>
+    <span>{{ filteredAlerts.length }} segnalazioni</span>
+  </div>
+  <div class="full-table-wrap">
+    <table>
+      <thead>
+        <tr><th>Timestamp</th><th>Dispositivo</th><th>Tipo</th><th>Parametro</th><th>Valore</th><th>Stato</th></tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let a of filteredAlerts" [class.row-critical]="a.severity === 'CRITICAL'" [class.row-warning]="a.severity === 'WARNING'">
+          <td>{{ formatTimestamp(a.timestamp) }}</td>
+          <td>{{ a.deviceId }}</td>
+          <td>{{ getDeviceLabel(a.deviceId) }}</td>
+          <td>{{ a.parameter }}</td>
+          <td>{{ a.value }}</td>
+          <td><span class="status" [class]="getSeverityClass(a.severity)">{{ getSeverityLabel(a.severity) }}</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </section>

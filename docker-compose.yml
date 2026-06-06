@@ -47,14 +47,17 @@ services:
         condition: service_healthy
 
   frontend:
-    build:
-      context: ./frontend
-    environment:
-      BACKEND_URL: http://backend:5000
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
     ports:
-      - "4200:80"
+      - "4200:4200"
+    command: sh -c "npm install --legacy-peer-deps --no-audit --no-fund && npm run start"
     depends_on:
-      - backend
+      backend:
+        condition: service_started
 
   mqtt-ingestor:
     build:
