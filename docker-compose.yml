@@ -1,0 +1,97 @@
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: nextpulse
+      MYSQL_USER: nextpulse
+      MYSQL_PASSWORD: nextpulse
+      MYSQL_ROOT_PASSWORD: rootpassword
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-prootpassword"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  mqtt:
+    image: eclipse-mosquitto:2
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./infra/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    healthcheck:
+      test: ["CMD", "mosquitto_sub", "-h", "localhost", "-t", "$$SYS/#", "-C", "1", "-W", "3"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: nextpulse
+      DB_USER: nextpulse
+      DB_PASSWORD: nextpulse
+      DB_CONNECT_RETRIES: 30
+      DB_CONNECT_RETRY_DELAY_SECONDS: 2
+      CORS_ORIGINS: "*"
+    ports:
+      - "5000:5000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+    environment:
+      BACKEND_URL: http://backend:5000
+    ports:
+      - "4200:80"
+    depends_on:
+      - backend
+
+  mqtt-ingestor:
+    build:
+      context: ./mqtt-ingestor
+    environment:
+      MQTT_HOST: mqtt
+      MQTT_PORT: 1883
+      MQTT_TOPIC: biosafe/telemetry/+
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: nextpulse
+      DB_USER: nextpulse
+      DB_PASSWORD: nextpulse
+    depends_on:
+      mysql:
+        condition: service_healthy
+      mqtt:
+        condition: service_healthy
+
+  mqtt-simulator:
+    build:
+      context: ./mqtt-simulator
+    environment:
+      MQTT_HOST: mqtt
+      MQTT_PORT: 1883
+      MQTT_TOPIC_PREFIX: biosafe/telemetry
+      CSV_PATH: /data/sensors.csv
+      PUBLISH_INTERVAL_SECONDS: 0.02
+      START_DELAY_SECONDS: 20
+      LOOP_DATASET: "false"
+    volumes:
+      - "./NEXTPULSE_Cloud&IoT_Allegato_Dataset_Sensori.csv:/data/sensors.csv:ro"
+    depends_on:
+      mqtt:
+        condition: service_healthy
+      mqtt-ingestor:
+        condition: service_started
+
+volumes:
+  mysql-data:
