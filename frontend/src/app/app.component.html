@@ -4,7 +4,45 @@
       <p class="eyebrow">BioSafe Clinic</p>
       <h1>NextPulse Smart Monitoring</h1>
     </div>
-    <button type="button" class="refresh" (click)="loadDashboard()">Aggiorna</button>
+    <div class="topbar-actions">
+      <div class="bell-container">
+        <button type="button" class="bell-button" (click)="toggleAlerts($event)" [attr.aria-label]="'Notifiche: ' + alertCount + ' allarmi'">
+          <span class="bell-icon">&#128276;</span>
+          <span *ngIf="alertCount > 0" class="bell-badge">{{ alertCount }}</span>
+        </button>
+        <div *ngIf="showAlerts" class="alert-dropdown">
+          <div class="alert-dropdown-header">
+            <span>Allarmi Recenti</span>
+            <span class="alert-dropdown-count">{{ alertCount }} segnalazioni</span>
+          </div>
+          <div *ngIf="alertItems.length === 0" class="alert-dropdown-empty">
+            <span>&#9989;</span>
+            <p>Nessun allarme attivo</p>
+          </div>
+          <div class="alert-dropdown-list">
+            <div
+              *ngFor="let alert of alertItems"
+              class="alert-item"
+              [class.alert-critical]="alert.severity === 'CRITICAL'"
+              [class.alert-warning]="alert.severity === 'WARNING'"
+            >
+              <span class="alert-dot" [class]="getSeverityClass(alert.severity)"></span>
+              <div class="alert-body">
+                <div class="alert-top">
+                  <strong>{{ alert.deviceId }}</strong>
+                  <span class="alert-severity-badge" [class]="getSeverityClass(alert.severity)">{{ alert.severity }}</span>
+                </div>
+                <div class="alert-detail">
+                  {{ alert.parameter }}: {{ alert.value }}
+                </div>
+                <div class="alert-time">{{ formatTimestamp(alert.timestamp) }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <button type="button" class="refresh" (click)="loadDashboard()">Aggiorna</button>
+    </div>
   </header>
 
   <section class="kpis">
@@ -26,86 +64,10 @@
     </article>
   </section>
 
-  <section class="controls">
-    <label>
-      Dispositivo
-      <select [(ngModel)]="selectedDevice" (change)="loadChartAndReadings()">
-        <option [ngValue]="null">Tutti</option>
-        <option *ngFor="let device of devices" [ngValue]="device.device_id">{{ device.device_id }}</option>
-      </select>
-    </label>
-    <label>
-      Metrica
-      <select [(ngModel)]="selectedMetric" (change)="loadChartAndReadings()">
-        <option value="temperatura">Temperatura</option>
-        <option value="vibrazione">Vibrazione</option>
-        <option value="livello_azoto">Livello azoto</option>
-      </select>
-    </label>
-    <p>Ultimo dato: {{ kpis?.last_seen || 'nessun dato' }}</p>
-  </section>
+  <nav class="nav-bar">
+    <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}" class="nav-tab">Dashboard</a>
+    <a routerLink="/letture" routerLinkActive="active" class="nav-tab">Ultime Letture</a>
+  </nav>
 
-  <section class="grid">
-    <article class="panel chart-panel">
-      <div class="panel-head">
-        <h2>Andamento sensori</h2>
-        <span>{{ selectedMetric }}</span>
-      </div>
-      <canvas #chartCanvas></canvas>
-    </article>
-
-    <article class="panel">
-      <div class="panel-head">
-        <h2>Dispositivi</h2>
-        <span>{{ devices.length }}</span>
-      </div>
-      <div class="device-list">
-        <button
-          type="button"
-          *ngFor="let device of devices"
-          [class.active]="device.device_id === selectedDevice"
-          (click)="selectDevice(device.device_id)"
-        >
-          <strong>{{ device.device_id }}</strong>
-          <span>{{ device.reparto }}</span>
-          <em [class.has-critical]="device.critical_count > 0">
-            C {{ device.critical_count }} / W {{ device.warning_count }}
-          </em>
-        </button>
-      </div>
-    </article>
-  </section>
-
-  <section class="panel table-panel">
-    <div class="panel-head">
-      <h2>Ultime letture</h2>
-      <span>{{ readings.length }}</span>
-    </div>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Timestamp</th>
-            <th>Device</th>
-            <th>Reparto</th>
-            <th>Temp</th>
-            <th>Vib</th>
-            <th>Azoto</th>
-            <th>Stato</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let row of readings">
-            <td>{{ row.timestamp }}</td>
-            <td>{{ row.device_id }}</td>
-            <td>{{ row.reparto }}</td>
-            <td>{{ row.temperatura ?? '-' }}</td>
-            <td>{{ row.vibrazione ?? '-' }}</td>
-            <td>{{ row.livello_azoto ?? '-' }}</td>
-            <td><span class="status" [class]="row.stato_dispositivo.toLowerCase()">{{ row.stato_dispositivo }}</span></td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </section>
+  <router-outlet></router-outlet>
 </main>
