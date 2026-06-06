@@ -64,10 +64,111 @@
     </article>
   </section>
 
-  <nav class="nav-bar">
-    <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}" class="nav-tab">Dashboard</a>
-    <a routerLink="/letture" routerLinkActive="active" class="nav-tab">Ultime Letture</a>
-  </nav>
+  <section class="controls">
+    <label>
+      Laboratorio
+      <select [(ngModel)]="selectedLab" (change)="onLabChange()">
+        <option [ngValue]="null">Tutti</option>
+        <option *ngFor="let lab of labs" [ngValue]="lab">Laboratorio {{ lab }}</option>
+      </select>
+    </label>
+    <label>
+      Dispositivo
+      <select [(ngModel)]="selectedDevice" (change)="loadChartAndReadings()">
+        <option [ngValue]="null">Tutti</option>
+        <option *ngFor="let device of filteredDevices" [ngValue]="device.device_id">{{ device.device_id }}</option>
+      </select>
+    </label>
+    <label>
+      Metrica
+      <select [(ngModel)]="selectedMetric" (change)="loadChartAndReadings()">
+        <option value="temperatura">Temperatura</option>
+        <option value="vibrazione">Vibrazione</option>
+        <option value="livello_azoto">Livello azoto</option>
+      </select>
+    </label>
+    <label>
+      Da
+      <input
+        type="datetime-local"
+        [(ngModel)]="selectedFrom"
+        (change)="loadChartAndReadings()"
+        aria-label="Data e ora iniziale"
+      >
+    </label>
+    <label>
+      A
+      <input
+        type="datetime-local"
+        [(ngModel)]="selectedTo"
+        (change)="loadChartAndReadings()"
+        aria-label="Data e ora finale"
+      >
+    </label>
+    <p>Ultimo dato: {{ kpis?.last_seen || 'nessun dato' }}</p>
+  </section>
 
-  <router-outlet></router-outlet>
+  <section class="grid">
+    <article class="panel chart-panel">
+      <div class="panel-head">
+        <h2>Andamento sensori</h2>
+        <span>{{ selectedMetric }}</span>
+      </div>
+      <canvas #chartCanvas></canvas>
+    </article>
+
+    <article class="panel">
+      <div class="panel-head">
+        <h2>Dispositivi</h2>
+        <span>{{ filteredDevices.length }}</span>
+      </div>
+      <div class="device-list">
+        <button
+          type="button"
+          *ngFor="let device of filteredDevices"
+          [class.active]="device.device_id === selectedDevice"
+          (click)="selectDevice(device.device_id)"
+        >
+          <strong>{{ device.device_id }}</strong>
+          <span>{{ device.reparto }} - Lab {{ device.laboratorio }}</span>
+          <em [class.has-critical]="device.critical_count > 0">
+            C {{ device.critical_count }} / W {{ device.warning_count }}
+          </em>
+        </button>
+      </div>
+    </article>
+  </section>
+
+  <section class="panel table-panel">
+    <div class="panel-head">
+      <h2>Ultime letture</h2>
+      <span>{{ readings.length }}</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Timestamp</th>
+            <th>Device</th>
+            <th>Reparto</th>
+            <th>Temp</th>
+            <th>Vib</th>
+            <th>Azoto</th>
+            <th>Stato</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of readings">
+            <td>{{ row.timestamp }}</td>
+            <td>{{ row.device_id }}</td>
+            <td>{{ row.reparto }}</td>
+            <td>{{ row.temperatura ?? '-' }}</td>
+            <td>{{ row.vibrazione ?? '-' }}</td>
+            <td>{{ row.livello_azoto ?? '-' }}</td>
+            <td><span class="status" [class]="row.stato_dispositivo.toLowerCase()">{{ row.stato_dispositivo }}</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
 </main>

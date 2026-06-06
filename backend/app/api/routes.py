@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from flask import Blueprint, jsonify, request
 from sqlalchemy import case, func
 
@@ -5,6 +7,55 @@ from app.db import db
 from app.models import SensorReading
 
 api = Blueprint("api", __name__)
+
+
+def parse_datetime_filter(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    normalized = value.replace("T", " ")
+    for date_format in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M"):
+        try:
+            return datetime.strptime(normalized, date_format)
+        except ValueError:
+            continue
+    return None
+
+
+def apply_time_filters(query):
+    from_value = parse_datetime_filter(request.args.get("from"))
+    to_value = parse_datetime_filter(request.args.get("to"))
+
+    if from_value:
+        query = query.filter(SensorReading.timestamp >= from_value)
+    if to_value:
+        query = query.filter(SensorReading.timestamp <= to_value)
+    return query
+
+
+def device_lab_expression():
+    return func.substring_index(SensorReading.device_id, "-", -1)
+
+
+def normalize_lab_filter(value: str | None) -> str | None:
+    if not value:
+        return None
+    normalized = value.replace("Laboratorio", "").strip()
+    if normalized.isdigit():
+        return normalized.zfill(2)
+    return normalized
+
+
+def format_lab(value: str | None) -> str | None:
+    if value and value.isdigit():
+        return str(int(value))
+    return value
+
+
+def apply_lab_filter(query):
+    lab = normalize_lab_filter(request.args.get("lab") or request.args.get("laboratorio"))
+    if lab:
+        query = query.filter(device_lab_expression() == lab)
+    return query
 
 
 @api.get("/health")
@@ -23,6 +74,8 @@ def readings():
         query = query.filter(SensorReading.device_id == device_id)
     if status:
         query = query.filter(SensorReading.stato_dispositivo == status)
+    query = apply_lab_filter(query)
+    query = apply_time_filters(query)
 
     rows = query.order_by(SensorReading.timestamp.desc()).limit(limit).all()
     return jsonify([row.to_dict() for row in rows])
@@ -30,21 +83,25 @@ def readings():
 
 @api.get("/api/devices")
 def devices():
+    lab_expression = device_lab_expression()
+    query = db.session.query(
+        SensorReading.device_id,
+        SensorReading.device_type,
+        SensorReading.reparto,
+        lab_expression.label("laboratorio"),
+        func.count(SensorReading.id).label("reading_count"),
+        func.max(SensorReading.timestamp).label("last_seen"),
+        func.sum(case((SensorReading.stato_dispositivo == "WARNING", 1), else_=0)).label(
+            "warning_count"
+        ),
+        func.sum(case((SensorReading.stato_dispositivo == "CRITICAL", 1), else_=0)).label(
+            "critical_count"
+        ),
+    )
+    query = apply_lab_filter(query)
+
     rows = (
-        db.session.query(
-            SensorReading.device_id,
-            SensorReading.device_type,
-            SensorReading.reparto,
-            func.count(SensorReading.id).label("reading_count"),
-            func.max(SensorReading.timestamp).label("last_seen"),
-            func.sum(case((SensorReading.stato_dispositivo == "WARNING", 1), else_=0)).label(
-                "warning_count"
-            ),
-            func.sum(case((SensorReading.stato_dispositivo == "CRITICAL", 1), else_=0)).label(
-                "critical_count"
-            ),
-        )
-        .group_by(SensorReading.device_id, SensorReading.device_type, SensorReading.reparto)
+        query.group_by(SensorReading.device_id, SensorReading.device_type, SensorReading.reparto, lab_expression)
         .order_by(SensorReading.device_id)
         .all()
     )
@@ -55,6 +112,7 @@ def devices():
                 "device_id": row.device_id,
                 "device_type": row.device_type,
                 "reparto": row.reparto,
+                "laboratorio": format_lab(row.laboratorio),
                 "reading_count": int(row.reading_count),
                 "last_seen": row.last_seen.isoformat(sep=" ") if row.last_seen else None,
                 "warning_count": int(row.warning_count or 0),
@@ -112,6 +170,8 @@ def timeseries():
     query = db.session.query(SensorReading.timestamp, metric_column).filter(metric_column.isnot(None))
     if device_id:
         query = query.filter(SensorReading.device_id == device_id)
+    query = apply_lab_filter(query)
+    query = apply_time_filters(query)
 
     rows = query.order_by(SensorReading.timestamp.desc()).limit(limit).all()
     rows = list(reversed(rows))

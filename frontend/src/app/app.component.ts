@@ -20,8 +20,14 @@ interface AlertItem {
 })
 export class AppComponent implements OnInit {
   kpis: Kpis | null = null;
-  alertItems: AlertItem[] = [];
-  showAlerts = false;
+  devices: DeviceSummary[] = [];
+  readings: SensorReading[] = [];
+  selectedDevice: string | null = null;
+  selectedLab: string | null = null;
+  selectedMetric = 'temperatura';
+  selectedFrom = '';
+  selectedTo = '';
+  private chart?: Chart;
 
   constructor(private readonly api: MonitoringApiService) {}
 
@@ -32,74 +38,45 @@ export class AppComponent implements OnInit {
 
   loadDashboard(): void {
     this.api.getKpis().subscribe((kpis) => (this.kpis = kpis));
-    this.loadAlerts();
-  }
-
-  loadAlerts(): void {
-    this.api.getReadings(undefined, 500).subscribe((rows) => {
-      const alertMap = new Map<string, AlertItem>();
-
-      for (const row of rows) {
-        const status = row.stato_dispositivo.toUpperCase();
-        if (status !== 'CRITICAL' && status !== 'WARNING') continue;
-
-        const params = this.getAlertParameters(row, status);
-        for (const p of params) {
-          const key = `${row.device_id}|${p.parameter}|${p.severity}`;
-          if (!alertMap.has(key)) {
-            alertMap.set(key, {
-              deviceId: row.device_id,
-              severity: p.severity,
-              parameter: p.parameter,
-              value: p.value,
-              timestamp: row.timestamp,
-            });
-          }
-        }
+    this.api.getDevices().subscribe((devices) => {
+      this.devices = devices;
+      if (!this.selectedDevice && devices.length > 0) {
+        this.selectedDevice = devices[0].device_id;
       }
-
-      this.api.getDevices().subscribe((devices) => {
-        this.mergeDeviceAlerts(devices, alertMap);
-
-        const sorted = Array.from(alertMap.values()).sort((a, b) => {
-          const rank: Record<string, number> = { CRITICAL: 2, WARNING: 1 };
-          const diff = (rank[b.severity] ?? 0) - (rank[a.severity] ?? 0);
-          if (diff !== 0) return diff;
-          return b.timestamp.localeCompare(a.timestamp);
-        });
-
-        this.alertItems = sorted.slice(0, 20);
-      });
+      this.loadChartAndReadings();
     });
   }
 
-  private mergeDeviceAlerts(devices: DeviceSummary[], alertMap: Map<string, AlertItem>): void {
-    for (const device of devices) {
-      if (device.critical_count > 0) {
-        const key = `${device.device_id}|Stato|CRITICAL`;
-        if (!alertMap.has(key)) {
-          alertMap.set(key, {
-            deviceId: device.device_id,
-            severity: 'CRITICAL',
-            parameter: 'Stato Generale',
-            value: `${device.critical_count} critici`,
-            timestamp: device.last_seen ?? new Date().toISOString(),
-          });
-        }
-      }
-      if (device.warning_count > 0) {
-        const key = `${device.device_id}|Stato|WARNING`;
-        if (!alertMap.has(key)) {
-          alertMap.set(key, {
-            deviceId: device.device_id,
-            severity: 'WARNING',
-            parameter: 'Stato Generale',
-            value: `${device.warning_count} warning`,
-            timestamp: device.last_seen ?? new Date().toISOString(),
-          });
-        }
-      }
+  get labs(): string[] {
+    return [...new Set(this.devices.map((device) => device.laboratorio))].sort((a, b) => Number(a) - Number(b));
+  }
+
+  get filteredDevices(): DeviceSummary[] {
+    if (!this.selectedLab) {
+      return this.devices;
     }
+    return this.devices.filter((device) => device.laboratorio === this.selectedLab);
+  }
+
+  onLabChange(): void {
+    if (this.selectedDevice && !this.filteredDevices.some((device) => device.device_id === this.selectedDevice)) {
+      this.selectedDevice = null;
+    }
+    this.loadChartAndReadings();
+  }
+
+  loadChartAndReadings(): void {
+    this.api
+      .getReadings(this.selectedDevice ?? undefined, 120, this.selectedFrom, this.selectedTo, this.selectedLab ?? undefined)
+      .subscribe((rows) => (this.readings = rows));
+    this.api
+      .getTimeseries(this.selectedDevice, this.selectedMetric, 240, this.selectedFrom, this.selectedTo, this.selectedLab ?? undefined)
+      .subscribe((points) => this.renderChart(points));
+  }
+
+  selectDevice(deviceId: string): void {
+    this.selectedDevice = deviceId;
+    this.loadChartAndReadings();
   }
 
   private getAlertParameters(row: SensorReading, status: string): { severity: string; parameter: string; value: string }[] {
