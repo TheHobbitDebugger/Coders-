@@ -92,11 +92,43 @@ h1 {
   padding: 10px 20px;
   font-size: 0.9rem;
   font-weight: 700;
+  color: #53697d;
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: color 0.15s, border-color 0.15s;
 }
 
-.controls select {
-  min-width: 180px;
-  min-height: 38px;
+.nav-tab:hover {
+  color: #17202a;
+}
+
+.nav-tab.active {
+  color: #177ddc;
+  border-bottom-color: #177ddc;
+}
+
+/* ---- Topbar actions ---- */
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ---- Notification Bell ---- */
+
+.bell-container {
+  position: relative;
+}
+
+.bell-button {
+  position: relative;
+  min-height: 40px;
+  min-width: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border: 1px solid #cbd6e2;
   background: #ffffff;
   border-radius: 6px;
