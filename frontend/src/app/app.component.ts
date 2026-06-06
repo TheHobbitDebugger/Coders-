@@ -24,7 +24,10 @@ export class AppComponent implements OnInit, OnDestroy {
   devices: DeviceSummary[] = [];
   readings: SensorReading[] = [];
   selectedDevice: string | null = null;
+  selectedLab: string | null = null;
   selectedMetric = 'temperatura';
+  selectedFrom = '';
+  selectedTo = '';
   private chart?: Chart;
 
   constructor(private readonly api: MonitoringApiService) {}
@@ -48,10 +51,30 @@ export class AppComponent implements OnInit, OnDestroy {
     });
   }
 
+  get labs(): string[] {
+    return [...new Set(this.devices.map((device) => device.laboratorio))].sort((a, b) => Number(a) - Number(b));
+  }
+
+  get filteredDevices(): DeviceSummary[] {
+    if (!this.selectedLab) {
+      return this.devices;
+    }
+    return this.devices.filter((device) => device.laboratorio === this.selectedLab);
+  }
+
+  onLabChange(): void {
+    if (this.selectedDevice && !this.filteredDevices.some((device) => device.device_id === this.selectedDevice)) {
+      this.selectedDevice = null;
+    }
+    this.loadChartAndReadings();
+  }
+
   loadChartAndReadings(): void {
-    this.api.getReadings(this.selectedDevice ?? undefined, 120).subscribe((rows) => (this.readings = rows));
     this.api
-      .getTimeseries(this.selectedDevice, this.selectedMetric, 240)
+      .getReadings(this.selectedDevice ?? undefined, 120, this.selectedFrom, this.selectedTo, this.selectedLab ?? undefined)
+      .subscribe((rows) => (this.readings = rows));
+    this.api
+      .getTimeseries(this.selectedDevice, this.selectedMetric, 240, this.selectedFrom, this.selectedTo, this.selectedLab ?? undefined)
       .subscribe((points) => this.renderChart(points));
   }
 

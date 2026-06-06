@@ -14,6 +14,7 @@ export interface DeviceSummary {
   device_id: string;
   device_type: string;
   reparto: string;
+  laboratorio: string;
   reading_count: number;
   last_seen: string | null;
   warning_count: number;
@@ -51,18 +52,43 @@ export class MonitoringApiService {
     return this.http.get<DeviceSummary[]>(`${this.baseUrl}/devices`);
   }
 
-  getReadings(deviceId?: string, limit = 100): Observable<SensorReading[]> {
+  getReadings(deviceId?: string, limit = 100, from?: string, to?: string, lab?: string): Observable<SensorReading[]> {
     let params = new HttpParams().set('limit', limit);
     if (deviceId) {
       params = params.set('device_id', deviceId);
     }
+    if (lab) {
+      params = params.set('lab', lab);
+    }
+    if (from) {
+      params = params.set('from', from);
+    }
+    if (to) {
+      params = params.set('to', to);
+    }
     return this.http.get<SensorReading[]>(`${this.baseUrl}/readings`, { params });
   }
 
-  getTimeseries(deviceId: string | null, metric: string, limit = 240): Observable<TimeseriesPoint[]> {
+  getTimeseries(
+    deviceId: string | null,
+    metric: string,
+    limit = 240,
+    from?: string,
+    to?: string,
+    lab?: string
+  ): Observable<TimeseriesPoint[]> {
     let params = new HttpParams().set('metric', metric).set('limit', limit);
     if (deviceId) {
       params = params.set('device_id', deviceId);
+    }
+    if (lab) {
+      params = params.set('lab', lab);
+    }
+    if (from) {
+      params = params.set('from', from);
+    }
+    if (to) {
+      params = params.set('to', to);
     }
     return this.http.get<TimeseriesPoint[]>(`${this.baseUrl}/timeseries`, { params });
   }

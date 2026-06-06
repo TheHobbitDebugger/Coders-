@@ -104,7 +104,8 @@ h2 {
   font-weight: 700;
 }
 
-.controls select {
+.controls select,
+.controls input {
   min-width: 180px;
   min-height: 38px;
   border: 1px solid #cbd6e2;

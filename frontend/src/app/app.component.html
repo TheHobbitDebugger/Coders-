@@ -28,10 +28,17 @@
 
   <section class="controls">
     <label>
+      Laboratorio
+      <select [(ngModel)]="selectedLab" (change)="onLabChange()">
+        <option [ngValue]="null">Tutti</option>
+        <option *ngFor="let lab of labs" [ngValue]="lab">Laboratorio {{ lab }}</option>
+      </select>
+    </label>
+    <label>
       Dispositivo
       <select [(ngModel)]="selectedDevice" (change)="loadChartAndReadings()">
         <option [ngValue]="null">Tutti</option>
-        <option *ngFor="let device of devices" [ngValue]="device.device_id">{{ device.device_id }}</option>
+        <option *ngFor="let device of filteredDevices" [ngValue]="device.device_id">{{ device.device_id }}</option>
       </select>
     </label>
     <label>
@@ -41,6 +48,24 @@
         <option value="vibrazione">Vibrazione</option>
         <option value="livello_azoto">Livello azoto</option>
       </select>
+    </label>
+    <label>
+      Da
+      <input
+        type="datetime-local"
+        [(ngModel)]="selectedFrom"
+        (change)="loadChartAndReadings()"
+        aria-label="Data e ora iniziale"
+      >
+    </label>
+    <label>
+      A
+      <input
+        type="datetime-local"
+        [(ngModel)]="selectedTo"
+        (change)="loadChartAndReadings()"
+        aria-label="Data e ora finale"
+      >
     </label>
     <p>Ultimo dato: {{ kpis?.last_seen || 'nessun dato' }}</p>
   </section>
@@ -57,17 +82,17 @@
     <article class="panel">
       <div class="panel-head">
         <h2>Dispositivi</h2>
-        <span>{{ devices.length }}</span>
+        <span>{{ filteredDevices.length }}</span>
       </div>
       <div class="device-list">
         <button
           type="button"
-          *ngFor="let device of devices"
+          *ngFor="let device of filteredDevices"
           [class.active]="device.device_id === selectedDevice"
           (click)="selectDevice(device.device_id)"
         >
           <strong>{{ device.device_id }}</strong>
-          <span>{{ device.reparto }}</span>
+          <span>{{ device.reparto }} - Lab {{ device.laboratorio }}</span>
           <em [class.has-critical]="device.critical_count > 0">
             C {{ device.critical_count }} / W {{ device.warning_count }}
           </em>
