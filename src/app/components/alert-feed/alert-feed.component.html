@@ -1,0 +1,33 @@
+<div class="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden">
+  <div class="bg-slate-700 px-4 py-3 flex items-center gap-2">
+    <lucide-angular name="alert-triangle" class="w-5 h-5 text-yellow-400"></lucide-angular>
+    <h3 class="text-sm font-semibold text-slate-200">Allarmi Attivi</h3>
+    <span class="text-xs text-slate-400 ml-auto">{{ alerts.length }} segnalazioni</span>
+  </div>
+
+  <div *ngIf="alerts.length === 0" class="p-6 text-center text-slate-500 text-sm">
+    <lucide-angular name="check-circle" class="w-8 h-8 mx-auto mb-2 text-green-500"></lucide-angular>
+    Nessun allarme attivo
+  </div>
+
+  <div class="divide-y divide-slate-700 max-h-72 overflow-y-auto">
+    <div *ngFor="let alert of alerts" class="px-4 py-3 flex items-center gap-3" [ngClass]="alertRowClass(alert.severity)">
+      <div class="w-2 h-2 rounded-full flex-shrink-0" [ngClass]="alertDotClass(alert.severity)"></div>
+
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-2">
+          <span class="text-sm font-bold text-slate-200">{{ alert.deviceId }}</span>
+          <span class="text-xs px-1.5 py-0.5 rounded font-semibold" [ngClass]="alertBadgeClass(alert.severity)">{{ alert.severity }}</span>
+        </div>
+        <div class="text-xs text-slate-400 mt-0.5">
+          {{ alert.parameter }}: {{ alert.value }}{{ alert.unit }}
+          <span class="text-slate-500"> &middot; {{ alert.reparto }}</span>
+        </div>
+      </div>
+
+      <div class="text-xs text-slate-500 flex-shrink-0 whitespace-nowrap">
+        {{ alert.timestamp | date:'dd/MM HH:mm' }}
+      </div>
+    </div>
+  </div>
+</div>

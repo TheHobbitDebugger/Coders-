@@ -1,0 +1,19 @@
+<div class="bg-slate-800 rounded-lg border border-slate-700 p-4">
+  <h3 class="text-sm font-semibold text-slate-300 mb-4">
+    <lucide-angular name="line-chart" class="w-4 h-4 inline mr-2"></lucide-angular>
+    Andamento Sensori &mdash; {{ device?.deviceId }}
+  </h3>
+
+  <div *ngIf="!chartData" class="text-center py-16 text-slate-500 text-sm">
+    Seleziona un dispositivo per visualizzare i dati
+  </div>
+
+  <div *ngIf="chartData" class="w-full" style="height: 320px;">
+    <canvas
+      baseChart
+      [type]="'line'"
+      [data]="chartData"
+      [options]="chartOptions"
+    ></canvas>
+  </div>
+</div>

@@ -1,0 +1,37 @@
+<div
+  class="rounded-lg border-2 p-4 cursor-pointer transition hover:scale-[1.02] hover:shadow-lg"
+  [ngClass]="statusClasses"
+  (click)="onClick()"
+>
+  <div class="flex items-center justify-between mb-3">
+    <div class="flex items-center gap-2">
+      <lucide-angular [name]="deviceIcon" class="w-5 h-5 text-slate-300"></lucide-angular>
+      <span class="font-bold text-slate-200">{{ device.deviceId }}</span>
+    </div>
+    <span
+      class="text-xs px-2 py-0.5 rounded-full font-semibold"
+      [ngClass]="severityClasses"
+    >{{ device.computedSeverity }}</span>
+  </div>
+
+  <div class="text-xs text-slate-400 mb-2">{{ typeLabel }} &middot; {{ device.reparto }}</div>
+
+  <div class="space-y-1">
+    <div class="flex justify-between text-xs">
+      <span class="text-slate-400">Temperatura</span>
+      <span class="text-slate-200 font-mono">{{ device.latestReading.temperatura | number:'1.1-1' }}&deg;C</span>
+    </div>
+    <div class="flex justify-between text-xs">
+      <span class="text-slate-400">Vibrazione</span>
+      <span class="text-slate-200 font-mono">{{ device.latestReading.vibrazione | number:'1.3-3' }} mm/s</span>
+    </div>
+    <div *ngIf="device.deviceType === 'banca_criogenica'" class="flex justify-between text-xs">
+      <span class="text-slate-400">Livello Azoto</span>
+      <span class="text-slate-200 font-mono">{{ device.latestReading.livelloAzoto | number:'1.1-1' }}%</span>
+    </div>
+  </div>
+
+  <div class="text-xs text-slate-500 mt-2 text-right">
+    {{ device.latestReading.timestamp | date:'dd/MM/yyyy HH:mm' }}
+  </div>
+</div>

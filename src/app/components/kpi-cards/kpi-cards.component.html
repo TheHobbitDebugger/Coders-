@@ -1,0 +1,21 @@
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+  <div class="bg-slate-800 rounded-lg p-4 border border-slate-700">
+    <div class="text-sm text-slate-400 mb-1">Dispositivi Online</div>
+    <div class="text-3xl font-bold text-blue-400">{{ totalDevices }}</div>
+  </div>
+
+  <div class="bg-slate-800 rounded-lg p-4 border-l-4 border-red-500">
+    <div class="text-sm text-slate-400 mb-1">Allarmi CRITICI</div>
+    <div class="text-3xl font-bold text-red-400">{{ criticalCount }}</div>
+  </div>
+
+  <div class="bg-slate-800 rounded-lg p-4 border-l-4 border-yellow-500">
+    <div class="text-sm text-slate-400 mb-1">Allarmi WARNING</div>
+    <div class="text-3xl font-bold text-yellow-400">{{ warningCount }}</div>
+  </div>
+
+  <div class="bg-slate-800 rounded-lg p-4 border-l-4 border-green-500">
+    <div class="text-sm text-slate-400 mb-1">Dispositivi OK</div>
+    <div class="text-3xl font-bold text-green-400">{{ okCount }}</div>
+  </div>
+</div>

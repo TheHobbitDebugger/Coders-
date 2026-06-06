@@ -1,0 +1,19 @@
+<div class="bg-slate-800 rounded-lg border border-slate-700 p-4">
+  <h3 class="text-sm font-semibold text-slate-300 mb-4">
+    <lucide-angular name="layout-grid" class="w-4 h-4 inline mr-2"></lucide-angular>
+    Dispositivi
+    <span class="text-slate-500 text-xs ml-2">({{ devices.length }})</span>
+  </h3>
+
+  <div *ngIf="devices.length === 0" class="text-center py-8 text-slate-500 text-sm">
+    Nessun dispositivo corrisponde ai filtri selezionati
+  </div>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+    <app-device-card
+      *ngFor="let device of devices"
+      [device]="device"
+      (selected)="onDeviceSelected($event)"
+    ></app-device-card>
+  </div>
+</div>

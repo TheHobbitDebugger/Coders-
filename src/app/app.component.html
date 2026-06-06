@@ -1,0 +1,34 @@
+<div class="min-h-screen bg-[#0f172a] text-slate-200">
+  <app-header [systemStatus]="(overallStatus$ | async) ?? 'OK'"></app-header>
+
+  <main class="max-w-[1920px] mx-auto px-4 py-6 space-y-6">
+    <app-filter-bar
+      [filter]="(filter$ | async)!"
+      (filterChange)="onFilterChange($event)"
+    ></app-filter-bar>
+
+    <app-kpi-cards
+      [totalDevices]="(devices$ | async)?.length ?? 0"
+      [criticalCount]="(criticalCount$ | async) ?? 0"
+      [warningCount]="(warningCount$ | async) ?? 0"
+      [okCount]="(okCount$ | async) ?? 0"
+    ></app-kpi-cards>
+
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div class="lg:col-span-1">
+        <app-alert-feed [alerts]="(alerts$ | async) ?? []"></app-alert-feed>
+      </div>
+
+      <div class="lg:col-span-3 space-y-6">
+        <app-device-grid
+          [devices]="(filteredDevices$ | async) ?? []"
+          (deviceSelected)="onDeviceSelect($event)"
+        ></app-device-grid>
+
+        <app-sensor-chart
+          [device]="selectedDevice$ | async"
+        ></app-sensor-chart>
+      </div>
+    </div>
+  </main>
+</div>

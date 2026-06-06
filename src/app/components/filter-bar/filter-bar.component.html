@@ -1,0 +1,48 @@
+<div class="flex flex-wrap items-center gap-3 bg-slate-800 p-3 rounded-lg">
+  <div class="flex items-center gap-2">
+    <lucide-angular name="filter" class="w-4 h-4 text-slate-400"></lucide-angular>
+    <span class="text-sm text-slate-300 font-medium">Reparto:</span>
+    <select
+      [value]="filter.reparto"
+      (change)="onRepartoChange($event)"
+      class="bg-slate-700 border border-slate-600 text-slate-200 text-sm rounded px-2 py-1 focus:outline-none focus:border-blue-500"
+    >
+      <option value="Tutti">Tutti</option>
+      <option value="Laboratorio A">Laboratorio A</option>
+      <option value="Laboratorio B">Laboratorio B</option>
+      <option value="Deposito C">Deposito C</option>
+      <option value="Edificio Principale">Edificio Principale</option>
+    </select>
+  </div>
+
+  <div class="flex items-center gap-2">
+    <lucide-angular name="alert-triangle" class="w-4 h-4 text-slate-400"></lucide-angular>
+    <span class="text-sm text-slate-300 font-medium">Stato:</span>
+    <select
+      [value]="filter.status"
+      (change)="onStatusChange($event)"
+      class="bg-slate-700 border border-slate-600 text-slate-200 text-sm rounded px-2 py-1 focus:outline-none focus:border-blue-500"
+    >
+      <option value="Tutti">Tutti</option>
+      <option value="OK">OK</option>
+      <option value="WARNING">WARNING</option>
+      <option value="CRITICAL">CRITICAL</option>
+    </select>
+  </div>
+
+  <div class="flex items-center gap-2">
+    <lucide-angular name="cpu" class="w-4 h-4 text-slate-400"></lucide-angular>
+    <span class="text-sm text-slate-300 font-medium">Tipo:</span>
+    <select
+      [value]="filter.deviceType"
+      (change)="onTypeChange($event)"
+      class="bg-slate-700 border border-slate-600 text-slate-200 text-sm rounded px-2 py-1 focus:outline-none focus:border-blue-500"
+    >
+      <option value="Tutti">Tutti</option>
+      <option value="incubatore">Incubatori</option>
+      <option value="cella_coltura">Celle di Coltura</option>
+      <option value="banca_criogenica">Banche Criogeniche</option>
+      <option value="hvac">HVAC</option>
+    </select>
+  </div>
+</div>
