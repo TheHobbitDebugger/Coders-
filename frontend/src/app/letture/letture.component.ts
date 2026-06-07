@@ -16,7 +16,6 @@ interface FilterState {
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './letture.component.html',
-  styleUrl: './letture.component.css',
   host: { '[style.display]': '"flex"', '[style.flex-direction]': '"column"', '[style.flex]': '"1 1 0"', '[style.min-height]': '"0"' }
 })
 export class LettureComponent implements OnInit {

@@ -7,6 +7,7 @@ from typing import Any
 
 import paho.mqtt.client as mqtt
 import pymysql
+from azure.communication.email import EmailClient
 
 
 MQTT_HOST = os.getenv("MQTT_HOST", "localhost")
@@ -19,6 +20,10 @@ DB_NAME = os.getenv("DB_NAME", "nextpulse")
 DB_USER = os.getenv("DB_USER", "nextpulse")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "nextpulse")
 
+#AZURE COMMUNICATION SERVICE VARIABLES
+ACS_CONNECTION_STRING = os.getenv("ACS_CONNECTION_STRING", "MOCK")
+SENDER_ADDRESS = os.getenv("ACS_SENDER_ADDRESS", "")
+ALERT_RECIPIENT = os.getenv("ALERT_RECIPIENT", "")
 
 CREATE_TABLE_SQL = """
 CREATE TABLE IF NOT EXISTS sensor_readings (
@@ -113,6 +118,17 @@ def on_message(client: mqtt.Client, userdata: Any, message: mqtt.MQTTMessage) ->
     try:
         payload = json.loads(message.payload.decode("utf-8"))
         insert_reading(payload)
+
+        # If the device hits CRITICAL severity status, fire email 
+        if payload.get("stato_dispositivo") == "CRITICAL":
+            send_critical_alert_email(
+                device_id=payload.get("device_id"),
+                reparto=payload.get("reparto"),
+                temp=payload.get("temperatura"),
+                vib=payload.get("vibrazione"),
+                azoto=payload.get("livello_azoto")
+            )
+            
     except Exception as error:
         print(f"Could not ingest MQTT message on {message.topic}: {error}", flush=True)
 
@@ -131,6 +147,50 @@ def main() -> None:
             time.sleep(3)
 
     client.loop_forever()
+
+
+# --- AZURE COMMUNICATION SERVICES SETUP ---
+def send_critical_alert_email(device_id, reparto, temps, vibration, azotoLvl):
+    """
+    Sends emergency email using Azure Communication Services.
+    """
+    #TODO: remove the next statement once the ACS is properly setup
+    if ACS_CONNECTION_STRING == "MOCK":
+        print(f"⚠️ [MOCK EMAIL] EMAIL TRIGGERED FOR {device_id} in {reparto}!")
+        return
+
+    try:
+        client = EmailClient.from_connection_string(ACS_CONNECTION_STRING)
+
+        #Build HTML body based on what parameters exist
+        html_content = f"<h2>🚨 CRITICAL ALERT: {device_id}</h2>"
+        html_content += f"<p><strong>Reparto:</strong> {reparto}</p>"
+        html_content += f"<ul>"
+        if temp is not None: html_content += f"<li>Temperatura: {temp} °C</li>"
+        if vib is not None: html_content += f"<li>Vibrazione: {vib} mm/s</li>"
+        if azoto is not None: html_content += f"<li>Livello Azoto: {azoto} %</li>"
+        html_content += f"</ul>"
+        html_content += f"<p>Si prega di controllare immediatamente la Dashboard BioSafe.</p>"
+
+        message = {
+            "senderAddress": SENDER_ADDRESS,
+            "recipients": {
+                "to": [{"address": ALERT_RECIPIENT}],
+            },
+            "content": {
+                "subject": f"🚨 BioSafe EMERGENCY: {device_id} in stato CRITICO",
+                "plainText": f"Emergenza: {device_id} in {reparto} è in stato critico.",
+                "html": html_content
+            }
+        }
+        
+        # Send the email
+        poller = client.begin_send(message)
+        result = poller.result()
+        print(f"📧 Email sent successfully for {device_id}. Message ID: {result['messageId']}")
+        
+    except Exception as e:
+        print(f"❌ Failed to send email: {e}")
 
 
 if __name__ == "__main__":

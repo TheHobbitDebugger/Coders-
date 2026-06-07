@@ -41,7 +41,7 @@ const DEVICE_TYPE_CONFIG: Record<string, DeviceTypeConfig> = {
   incubatore: {
     label: 'Incubatore Biologico',
     thresholds: [
-      { parameter: 'Temperatura', unit: '°C', normal: '36–38', warning: '<36 o >38', critical: '<35 o >39' },
+      { parameter: 'Temperatura', unit: '°C', normal: '36-38', warning: '<36 o >38', critical: '<35 o >39' },
       { parameter: 'Vibrazione', unit: 'mm/s', normal: '<0.6', warning: '0.6–1.0', critical: '>1.0' },
     ],
   },
@@ -93,7 +93,6 @@ const DEFAULT_ACTION_PLAN: string[] = [
   standalone: true,
   imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './dashboard.component.html',
-  styleUrl: './dashboard.component.css',
   host: { '[style.display]': '"flex"', '[style.flex-direction]': '"column"', '[style.flex]': '"1 1 0"', '[style.min-height]': '"0"' }
 })
 export class DashboardComponent implements OnInit, OnDestroy {
