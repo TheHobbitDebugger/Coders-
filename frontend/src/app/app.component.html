@@ -40,6 +40,16 @@
       <span class="block text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider">Dispositivi</span>
       <strong class="block text-3xl font-black text-slate-950 dark:text-white tracking-tight">{{ kpis?.devices_count ?? 0 }}</strong>
     </article>
+
+    <article class="border border-amber-200 dark:border-amber-900/60 rounded-xl bg-amber-50 dark:bg-amber-950/30 p-4 shadow-sm flex flex-col justify-between h-24">
+      <span class="block text-amber-700 dark:text-amber-300 text-xs font-semibold uppercase tracking-wider">Warning</span>
+      <strong class="block text-3xl font-black text-amber-700 dark:text-amber-300 tracking-tight">{{ kpis?.warning_count ?? 0 }}</strong>
+    </article>
+
+    <article class="border border-red-200 dark:border-red-900/60 rounded-xl bg-red-50 dark:bg-red-950/30 p-4 shadow-sm flex flex-col justify-between h-24">
+      <span class="block text-red-700 dark:text-red-300 text-xs font-semibold uppercase tracking-wider">Critici</span>
+      <strong class="block text-3xl font-black text-red-700 dark:text-red-300 tracking-tight">{{ kpis?.critical_count ?? 0 }}</strong>
+    </article>
   </section>
 
   <router-outlet></router-outlet>
