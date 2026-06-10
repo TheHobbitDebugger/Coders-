@@ -1,106 +1,78 @@
 import { CommonModule } from '@angular/common';
-import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
-import { FormsModule } from '@angular/forms';
-import Chart from 'chart.js/auto';
-import {
-  DeviceSummary,
-  Kpis,
-  MonitoringApiService,
-  SensorReading,
-  TimeseriesPoint
-} from './services/monitoring-api.service';
+import { Component, OnInit } from '@angular/core';
+import { RouterModule } from '@angular/router';
+import { MonitoringApiService, Kpis, SensorReading, DeviceSummary, TimeseriesPoint } from './services/monitoring-api.service';
+
+interface Chart {
+
+}
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, RouterModule],
   templateUrl: './app.component.html',
-  styleUrl: './app.component.css'
 })
-export class AppComponent implements OnInit, OnDestroy {
-  @ViewChild('chartCanvas') chartCanvas?: ElementRef<HTMLCanvasElement>;
-
+export class AppComponent implements OnInit {
   kpis: Kpis | null = null;
   devices: DeviceSummary[] = [];
   readings: SensorReading[] = [];
   selectedDevice: string | null = null;
+  selectedLab: string | null = null;
   selectedMetric = 'temperatura';
+  selectedFrom = '';
+  selectedTo = '';
+  isDarkMode = false;
+  showAlerts: boolean = false;
+  alertItems: any[] = [];
+  loading: boolean = false;
   private chart?: Chart;
 
   constructor(private readonly api: MonitoringApiService) {}
 
   ngOnInit(): void {
     this.loadDashboard();
+    this.checkThemeOnLoad();
   }
 
-  ngOnDestroy(): void {
-    this.chart?.destroy();
+  // Check theme on webapp load
+  checkThemeOnLoad() {
+    const persistedTheme = localStorage.getItem('theme');
+    if (persistedTheme === 'dark' || 
+       (!persistedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      this.setDarkMode(true);
+    } else {
+      this.setDarkMode(false);
+    }
+  }
+  
+  toggleTheme(){
+    this.setDarkMode(!this.isDarkMode);
+  }
+
+  setDarkMode(isDark: boolean) {
+    this.isDarkMode = isDark;
+    const htmlElement = document.documentElement;
+
+    if(isDark) {
+      htmlElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      htmlElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
   }
 
   loadDashboard(): void {
-    this.api.getKpis().subscribe((kpis) => (this.kpis = kpis));
-    this.api.getDevices().subscribe((devices) => {
-      this.devices = devices;
-      if (!this.selectedDevice && devices.length > 0) {
-        this.selectedDevice = devices[0].device_id;
-      }
-      this.loadChartAndReadings();
-    });
-  }
-
-  loadChartAndReadings(): void {
-    this.api.getReadings(this.selectedDevice ?? undefined, 120).subscribe((rows) => (this.readings = rows));
-    this.api
-      .getTimeseries(this.selectedDevice, this.selectedMetric, 240)
-      .subscribe((points) => this.renderChart(points));
-  }
-
-  selectDevice(deviceId: string): void {
-    this.selectedDevice = deviceId;
-    this.loadChartAndReadings();
-  }
-
-  private renderChart(points: TimeseriesPoint[]): void {
-    const canvas = this.chartCanvas?.nativeElement;
-    if (!canvas) {
-      setTimeout(() => this.renderChart(points));
-      return;
-    }
-
-    this.chart?.destroy();
-    this.chart = new Chart(canvas, {
-      type: 'line',
-      data: {
-        labels: points.map((point) => point.timestamp.slice(0, 16)),
-        datasets: [
-          {
-            label: this.selectedMetric,
-            data: points.map((point) => point.value),
-            borderColor: '#177ddc',
-            backgroundColor: 'rgba(23, 125, 220, 0.12)',
-            borderWidth: 2,
-            pointRadius: 0,
-            tension: 0.25,
-            fill: true
-          }
-        ]
+    this.loading = true;
+    this.api.getKpis().subscribe({
+      next: (kpis) => {
+        this.kpis = kpis;
+        this.loading = false;
       },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            display: false
-          }
-        },
-        scales: {
-          x: {
-            ticks: {
-              maxTicksLimit: 8
-            }
-          }
-        }
-      }
+      error: () => {
+        this.loading = false;
+      },
     });
   }
 }
