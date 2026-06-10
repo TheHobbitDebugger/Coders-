@@ -5,6 +5,13 @@
 
 NextPulse Smart Monitoring is a hackathon project for the Cloud & IoT BioSafe Clinic challenge. It simulates medical-lab sensor telemetry, sends it through MQTT, persists it in MySQL, exposes it through a Flask API, and displays operational KPIs, charts, alerts, and predictive analytics in an Angular dashboard.
 
+TO LAUNCH THE APP:
+Open a new terminal window
+use command "cd Hackathon project 2 Cloud & IoT\Coders" to get to the main folder of the project
+Make sure Docker Desktop is running in background (Download from here if needed: https://docs.docker.com/desktop/setup/install/windows-install/)
+Use command "docker compose up" to run containerized app
+Open browser and type "http://localhost:4200/" in the url section
+
 ## Architecture
 
 ```text
