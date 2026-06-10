@@ -1,6 +1,6 @@
 # NextPulse Smart Monitoring
 
-#### Video Demo: <URL HERE>
+#### Video Demo: <submit50 cs50/problems/2026/x/project>
 #### Description: Cloud-native and IoT med-tech monitoring and analytics Full-stack web app
 
 NextPulse Smart Monitoring is a hackathon project for the Cloud & IoT BioSafe Clinic challenge. It simulates medical-lab sensor telemetry, sends it through MQTT, persists it in MySQL, exposes it through a Flask API, and displays operational KPIs, charts, alerts, and predictive analytics in an Angular dashboard.
@@ -28,7 +28,7 @@ The local environment is fully containerized with Docker Compose:
 
 - `mqtt-simulator` reads the provided CSV dataset and publishes each row to `biosafe/telemetry/{device_id}`.
 - `mqtt` runs an Eclipse Mosquitto broker on port `1883`.
-- `mqtt-ingestor` subscribes to the telemetry topic, writes readings into MySQL, and can trigger Azure Communication Services email alerts for critical readings.
+-  subsc`mqtt-ingestor`ribes to the telemetry topic, writes readings into MySQL, and can trigger Azure Communication Services email alerts for critical readings.
 - `mysql` stores the `sensor_readings` table.
 - `backend` exposes REST endpoints for readings, devices, KPIs, time series, and analytics.
 - `frontend` provides the Angular dashboard with filters, charts, alerts, device details, dark mode, and analytics panels.
