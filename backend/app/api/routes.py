@@ -1,10 +1,42 @@
+from datetime import datetime
+
 from flask import Blueprint, jsonify, request
 from sqlalchemy import case, func
 
 from app.db import db
 from app.models import SensorReading
+from app.services.analytics import build_analytics
 
 api = Blueprint("api", __name__)
+
+
+def parse_datetime_filter(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    normalized = value.replace("T", " ")
+    for date_format in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M"):
+        try:
+            return datetime.strptime(normalized, date_format)
+        except ValueError:
+            continue
+    return None
+
+
+def apply_common_filters(query):
+    device_id = request.args.get("device_id")
+    reparto = request.args.get("reparto")
+    from_value = parse_datetime_filter(request.args.get("from"))
+    to_value = parse_datetime_filter(request.args.get("to"))
+
+    if device_id:
+        query = query.filter(SensorReading.device_id == device_id)
+    if reparto:
+        query = query.filter(SensorReading.reparto == reparto)
+    if from_value:
+        query = query.filter(SensorReading.timestamp >= from_value)
+    if to_value:
+        query = query.filter(SensorReading.timestamp <= to_value)
+    return query
 
 
 @api.get("/health")
@@ -23,6 +55,7 @@ def readings():
         query = query.filter(SensorReading.device_id == device_id)
     if status:
         query = query.filter(SensorReading.stato_dispositivo == status)
+    query = apply_common_filters(query)
 
     rows = query.order_by(SensorReading.timestamp.desc()).limit(limit).all()
     return jsonify([row.to_dict() for row in rows])
@@ -110,8 +143,7 @@ def timeseries():
         return jsonify({"error": "Unsupported metric"}), 400
 
     query = db.session.query(SensorReading.timestamp, metric_column).filter(metric_column.isnot(None))
-    if device_id:
-        query = query.filter(SensorReading.device_id == device_id)
+    query = apply_common_filters(query)
 
     rows = query.order_by(SensorReading.timestamp.desc()).limit(limit).all()
     rows = list(reversed(rows))
@@ -125,3 +157,10 @@ def timeseries():
             for row in rows
         ]
     )
+
+
+@api.get("/api/analytics")
+def analytics():
+    query = apply_common_filters(SensorReading.query)
+    rows = query.order_by(SensorReading.device_id, SensorReading.timestamp).all()
+    return jsonify(build_analytics(rows))

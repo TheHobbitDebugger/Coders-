@@ -63,6 +63,7 @@
   <button type="button" class="flex-1 px-1 py-2.5 text-[12px] sm:text-sm font-bold border-none bg-transparent cursor-pointer border-b-2 -mb-[2px] transition-colors hover:text-slate-900 dark:hover:text-slate-200 text-center truncate" [ngClass]="activeTab === 'chart' ? 'text-blue-600 dark:text-blue-400 border-blue-600 dark:border-blue-400' : 'text-slate-600 dark:text-slate-500 border-transparent'" (click)="setTab('chart')">Andamento Sensori</button>
   <button type="button" class="flex-1 px-1 py-2.5 text-[12px] sm:text-sm font-bold border-none bg-transparent cursor-pointer border-b-2 -mb-[2px] transition-colors hover:text-slate-900 dark:hover:text-slate-200 text-center truncate" [ngClass]="activeTab === 'letture' ? 'text-blue-600 dark:text-blue-400 border-blue-600 dark:border-blue-400' : 'text-slate-600 dark:text-slate-500 border-transparent'" (click)="setTab('letture')">Ultime Letture</button>
   <button type="button" class="flex-1 px-1 py-2.5 text-[12px] sm:text-sm font-bold border-none bg-transparent cursor-pointer border-b-2 -mb-[2px] transition-colors hover:text-slate-900 dark:hover:text-slate-200 text-center truncate" [ngClass]="activeTab === 'alert' ? 'text-blue-600 dark:text-blue-400 border-blue-600 dark:border-blue-400' : 'text-slate-600 dark:text-slate-500 border-transparent'" (click)="setTab('alert')">Alert</button>
+  <button type="button" class="flex-1 px-1 py-2.5 text-[12px] sm:text-sm font-bold border-none bg-transparent cursor-pointer border-b-2 -mb-[2px] transition-colors hover:text-slate-900 dark:hover:text-slate-200 text-center truncate" [ngClass]="activeTab === 'analytics' ? 'text-blue-600 dark:text-blue-400 border-blue-600 dark:border-blue-400' : 'text-slate-600 dark:text-slate-500 border-transparent'" (click)="setTab('analytics')">Analytics</button>
 </nav>
 
 <section class="grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(320px,0.8fr)] gap-4 flex-none lg:flex-1 min-h-0" *ngIf="activeTab === 'chart'">
@@ -302,4 +303,176 @@
       </tbody>
     </table>
   </div>
+</section>
+
+<section class="min-w-0 flex flex-col gap-4 overflow-auto flex-none lg:flex-1 min-h-0 pr-1" *ngIf="activeTab === 'analytics'">
+  <ng-container *ngIf="analytics as a; else analyticsLoading">
+    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 shrink-0">
+      <article class="border border-slate-300 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900 p-4 min-h-[120px] flex flex-col justify-between">
+        <span class="text-xs font-bold uppercase text-slate-500 dark:text-slate-400">Risk Score</span>
+        <div *ngIf="getPrimaryRiskDevice() as risk">
+          <strong class="block text-3xl font-black text-slate-950 dark:text-white">{{ risk.score | number:'1.0-1' }}</strong>
+          <div class="flex items-center gap-2 mt-2">
+            <span class="inline-flex px-2 py-1 rounded-full text-[11px] font-extrabold" [ngClass]="getSeverityBadgeClass(risk.severity)">{{ risk.severity }}</span>
+            <span class="text-sm text-slate-600 dark:text-slate-400">{{ risk.device_id }}</span>
+          </div>
+        </div>
+        <strong *ngIf="!getPrimaryRiskDevice()" class="block text-2xl font-black text-slate-400">-</strong>
+      </article>
+
+      <article class="border border-slate-300 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900 p-4 min-h-[120px] flex flex-col justify-between">
+        <span class="text-xs font-bold uppercase text-slate-500 dark:text-slate-400">Parametro più instabile</span>
+        <div *ngIf="a.most_unstable_parameter as unstable">
+          <strong class="block text-2xl font-black text-slate-950 dark:text-white">{{ unstable.parameter }}</strong>
+          <span class="text-sm text-slate-600 dark:text-slate-400">σ {{ unstable.stddev | number:'1.2-4' }} · {{ unstable.sample_count }} campioni</span>
+        </div>
+        <strong *ngIf="!a.most_unstable_parameter" class="block text-2xl font-black text-slate-400">-</strong>
+      </article>
+
+      <article class="border border-slate-300 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900 p-4 min-h-[120px] flex flex-col justify-between">
+        <span class="text-xs font-bold uppercase text-slate-500 dark:text-slate-400">Reparto più a rischio</span>
+        <div *ngIf="a.riskiest_reparto as reparto">
+          <strong class="block text-2xl font-black text-slate-950 dark:text-white">{{ reparto.reparto }}</strong>
+          <span class="text-sm text-slate-600 dark:text-slate-400">C {{ reparto.critical_count }} / W {{ reparto.warning_count }}</span>
+        </div>
+        <strong *ngIf="!a.riskiest_reparto" class="block text-2xl font-black text-slate-400">-</strong>
+      </article>
+
+      <article class="border border-slate-300 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900 p-4 min-h-[120px] flex flex-col justify-between">
+        <span class="text-xs font-bold uppercase text-slate-500 dark:text-slate-400">Tempo a soglia critica</span>
+        <div *ngIf="getFastestNitrogenRisk() as nitrogen">
+          <strong class="block text-3xl font-black text-slate-950 dark:text-white">{{ formatHours(nitrogen.time_to_critical_hours) }}</strong>
+          <span class="text-sm text-slate-600 dark:text-slate-400">{{ nitrogen.device_id }} · azoto {{ nitrogen.latest_value | number:'1.1-1' }}%</span>
+        </div>
+        <strong *ngIf="!getFastestNitrogenRisk()" class="block text-2xl font-black text-green-700 dark:text-green-300">Stabile</strong>
+      </article>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+      <article class="border border-slate-300 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900 p-4">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="m-0 text-base font-bold text-slate-900 dark:text-white">Top dispositivi problematici</h2>
+          <span class="text-xs text-slate-500 dark:text-slate-400">Top 3</span>
+        </div>
+        <div class="flex flex-col gap-2">
+          <div *ngFor="let device of a.top_problem_devices" class="grid grid-cols-[90px_1fr_auto] items-center gap-3 border border-slate-200 dark:border-slate-800 rounded-md px-3 py-2">
+            <strong class="text-slate-900 dark:text-white">{{ device.device_id }}</strong>
+            <span class="text-sm text-slate-600 dark:text-slate-400">{{ device.reparto }}</span>
+            <span class="text-xs font-extrabold text-red-700 dark:text-red-300">C {{ device.critical_count }} / W {{ device.warning_count }}</span>
+          </div>
+          <span *ngIf="a.top_problem_devices.length === 0" class="text-sm text-slate-500 dark:text-slate-400">Nessun evento anomalo</span>
+        </div>
+      </article>
+
+      <article class="border border-slate-300 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900 p-4">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="m-0 text-base font-bold text-slate-900 dark:text-white">Frequenza anomalie per fascia oraria</h2>
+          <span class="text-xs text-slate-500 dark:text-slate-400">{{ a.anomalies_by_hour.length }} fasce</span>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <div *ngFor="let item of a.anomalies_by_hour" class="border border-slate-200 dark:border-slate-800 rounded-md px-3 py-2">
+            <span class="block text-xs font-bold text-slate-500 dark:text-slate-400">{{ item.hour | number:'2.0-0' }}:00</span>
+            <strong class="text-lg text-slate-950 dark:text-white">{{ item.count }}</strong>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
+      <article class="border border-slate-300 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900 p-4">
+        <h2 class="m-0 mb-3 text-base font-bold text-slate-900 dark:text-white">Stabilità sensori</h2>
+        <div class="flex flex-col gap-2">
+          <div *ngFor="let item of a.sensor_stability" class="grid grid-cols-[80px_1fr_auto] items-center gap-2 text-sm border-b border-slate-100 dark:border-slate-800 pb-2">
+            <strong class="text-slate-900 dark:text-white">{{ item.device_id }}</strong>
+            <span class="text-slate-600 dark:text-slate-400">{{ item.parameter }} · σ {{ item.stddev | number:'1.3-4' }}</span>
+            <span class="text-xs font-bold" [ngClass]="item.status === 'sospetto' ? 'text-amber-700 dark:text-amber-300' : 'text-green-700 dark:text-green-300'">{{ item.status }}</span>
+          </div>
+        </div>
+      </article>
+
+      <article class="border border-slate-300 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900 p-4">
+        <h2 class="m-0 mb-3 text-base font-bold text-slate-900 dark:text-white">Trend temperatura</h2>
+        <div class="flex flex-col gap-2">
+          <div *ngFor="let trend of a.predictive.temperature_trends" class="grid grid-cols-[80px_1fr_auto] items-center gap-2 text-sm border-b border-slate-100 dark:border-slate-800 pb-2">
+            <strong class="text-slate-900 dark:text-white">{{ trend.device_id }}</strong>
+            <span class="text-slate-600 dark:text-slate-400">{{ trend.direction }}</span>
+            <span class="font-bold text-slate-900 dark:text-white">{{ trend.slope_per_hour | number:'1.3-4' }} °C/h</span>
+          </div>
+        </div>
+      </article>
+
+      <article class="border border-slate-300 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900 p-4">
+        <h2 class="m-0 mb-3 text-base font-bold text-slate-900 dark:text-white">Trend consumo azoto</h2>
+        <div class="flex flex-col gap-2">
+          <div *ngFor="let item of a.predictive.nitrogen_time_to_critical" class="grid grid-cols-[80px_1fr_auto] items-center gap-2 text-sm border-b border-slate-100 dark:border-slate-800 pb-2">
+            <strong class="text-slate-900 dark:text-white">{{ item.device_id }}</strong>
+            <span class="text-slate-600 dark:text-slate-400">{{ item.direction }} · {{ item.latest_value | number:'1.1-1' }}%</span>
+            <span class="font-bold" [ngClass]="item.time_to_critical_hours !== null ? 'text-red-700 dark:text-red-300' : 'text-green-700 dark:text-green-300'">{{ formatHours(item.time_to_critical_hours) }}</span>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
+      <article class="border border-slate-300 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900 p-4">
+        <h2 class="m-0 mb-3 text-base font-bold text-slate-900 dark:text-white">Probabilità guasto HVAC</h2>
+        <div *ngIf="a.predictive.hvac_failure_probability as hvac" class="flex items-center justify-between gap-3">
+          <div>
+            <strong class="block text-3xl font-black text-slate-950 dark:text-white">{{ hvac.probability !== null ? (hvac.probability | number:'1.0-1') + '%' : '-' }}</strong>
+            <span class="text-sm text-slate-600 dark:text-slate-400">Max vibrazione {{ hvac.max_vibration ?? '-' }} mm/s</span>
+          </div>
+          <span class="inline-flex px-2 py-1 rounded-full text-[11px] font-extrabold" [ngClass]="getSeverityBadgeClass(hvac.severity)">{{ hvac.severity }}</span>
+        </div>
+      </article>
+
+      <article class="border border-slate-300 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900 p-4">
+        <h2 class="m-0 mb-3 text-base font-bold text-slate-900 dark:text-white">Sensori sospetti/bloccati</h2>
+        <div class="flex flex-col gap-2">
+          <div *ngFor="let sensor of a.predictive.suspicious_sensors" class="grid grid-cols-[80px_1fr_auto] items-center gap-2 text-sm border-b border-slate-100 dark:border-slate-800 pb-2">
+            <strong class="text-slate-900 dark:text-white">{{ sensor.device_id }}</strong>
+            <span class="text-slate-600 dark:text-slate-400">{{ sensor.parameter }}</span>
+            <span class="text-xs font-bold text-amber-700 dark:text-amber-300">σ {{ sensor.stddev | number:'1.3-4' }}</span>
+          </div>
+          <span *ngIf="a.predictive.suspicious_sensors.length === 0" class="text-sm text-slate-500 dark:text-slate-400">Nessun sensore sospetto</span>
+        </div>
+      </article>
+
+      <article class="border border-slate-300 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900 p-4">
+        <h2 class="m-0 mb-3 text-base font-bold text-slate-900 dark:text-white">Anomalie ricorrenti</h2>
+        <div class="flex flex-col gap-2">
+          <div *ngFor="let anomaly of a.predictive.recurring_anomalies" class="grid grid-cols-[80px_1fr_auto] items-center gap-2 text-sm border-b border-slate-100 dark:border-slate-800 pb-2">
+            <strong class="text-slate-900 dark:text-white">{{ anomaly.device_id }}</strong>
+            <span class="text-slate-600 dark:text-slate-400">{{ anomaly.pattern }}</span>
+            <span class="inline-flex px-2 py-1 rounded-full text-[11px] font-extrabold" [ngClass]="getSeverityBadgeClass(anomaly.severity)">{{ anomaly.days_count }}g</span>
+          </div>
+          <span *ngIf="a.predictive.recurring_anomalies.length === 0" class="text-sm text-slate-500 dark:text-slate-400">Nessun pattern ricorrente</span>
+        </div>
+      </article>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+      <article class="border border-slate-300 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900 p-4">
+        <h2 class="m-0 mb-3 text-base font-bold text-slate-900 dark:text-white">Deviazione media dalla soglia</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <div *ngFor="let item of a.average_threshold_deviation.by_parameter" class="border border-slate-200 dark:border-slate-800 rounded-md px-3 py-2">
+            <span class="block text-xs font-bold text-slate-500 dark:text-slate-400">{{ item.parameter }}</span>
+            <strong class="text-lg text-slate-950 dark:text-white">{{ item.average_deviation | number:'1.2-3' }}</strong>
+          </div>
+        </div>
+      </article>
+
+      <article class="border border-slate-300 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900 p-4">
+        <h2 class="m-0 mb-3 text-base font-bold text-slate-900 dark:text-white">Durata media eventi critici</h2>
+        <strong class="block text-3xl font-black text-slate-950 dark:text-white">
+          {{ a.average_critical_duration_minutes !== null ? (a.average_critical_duration_minutes | number:'1.0-1') + ' min' : '-' }}
+        </strong>
+      </article>
+    </div>
+  </ng-container>
+
+  <ng-template #analyticsLoading>
+    <article class="border border-slate-300 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900 p-4 text-slate-600 dark:text-slate-400">
+      Analytics in caricamento...
+    </article>
+  </ng-template>
 </section>

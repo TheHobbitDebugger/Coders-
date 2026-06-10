@@ -5,6 +5,7 @@ import { ActivatedRoute, RouterModule } from '@angular/router';
 import Chart from 'chart.js/auto';
 import { Subscription } from 'rxjs';
 import {
+  AnalyticsResponse,
   DeviceSummary,
   MonitoringApiService,
   SensorReading,
@@ -104,7 +105,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
   selectedDevice: string | null = null;
   selectedLab: string | null = null;
   selectedMetric = 'temperatura';
-  activeTab: 'chart' | 'letture' | 'alert' = 'chart';
+  activeTab: 'chart' | 'letture' | 'alert' | 'analytics' = 'chart';
+  analytics: AnalyticsResponse | null = null;
   selectedFrom = '';
   selectedTo = '';
   displayFrom = '';
@@ -147,6 +149,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         this.selectedDevice = devices[0].device_id;
       }
       this.loadChartAndReadings();
+      this.loadAnalytics();
     });
   }
 
@@ -164,6 +167,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       this.selectedDevice = null;
     }
     this.loadChartAndReadings();
+    this.loadAnalytics();
   }
 
   get filteredReadings(): SensorReading[] {
@@ -215,6 +219,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.api
       .getTimeseries(this.selectedDevice, this.selectedMetric, 240)
       .subscribe((points) => this.renderChart(points));
+    if (this.activeTab === 'analytics') {
+      this.loadAnalytics();
+    }
   }
 
   selectDevice(deviceId: string): void {
@@ -232,11 +239,20 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.latestReading = null;
   }
 
-  setTab(tab: 'chart' | 'letture' | 'alert'): void {
+  setTab(tab: 'chart' | 'letture' | 'alert' | 'analytics'): void {
     this.activeTab = tab;
     if (tab === 'chart' && this.lastChartPoints.length > 0) {
       setTimeout(() => this.renderChart(this.lastChartPoints), 50);
     }
+    if (tab === 'analytics') {
+      this.loadAnalytics();
+    }
+  }
+
+  loadAnalytics(): void {
+    this.api
+      .getAnalytics(this.selectedDevice ?? undefined, this.selectedLab ?? undefined, this.selectedFrom, this.selectedTo)
+      .subscribe((analytics) => (this.analytics = analytics));
   }
 
   loadAlerts(): void {
@@ -327,6 +343,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }
     this.pickerOpen = null;
     this.loadChartAndReadings();
+    this.loadAnalytics();
   }
 
   clearPicker(): void {
@@ -339,6 +356,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }
     this.pickerOpen = null;
     this.loadChartAndReadings();
+    this.loadAnalytics();
   }
 
   @HostListener('document:click', ['$event'])
@@ -430,6 +448,31 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }
   }
 
+  getSeverityBadgeClass(severity?: string | null): string {
+    switch ((severity ?? '').toUpperCase()) {
+      case 'CRITICAL':
+        return 'bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-300';
+      case 'WARNING':
+        return 'bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300';
+      default:
+        return 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300';
+    }
+  }
+
+  getPrimaryRiskDevice(): AnalyticsResponse['predictive']['device_risk_scores'][number] | null {
+    return this.analytics?.predictive.device_risk_scores[0] ?? null;
+  }
+
+  getFastestNitrogenRisk(): AnalyticsResponse['predictive']['nitrogen_time_to_critical'][number] | null {
+    return this.analytics?.predictive.nitrogen_time_to_critical.find((item) => item.time_to_critical_hours !== null) ?? null;
+  }
+
+  formatHours(hours: number | null | undefined): string {
+    if (hours === null || hours === undefined) return 'Stabile';
+    if (hours < 1) return '< 1 h';
+    return `${hours.toFixed(1)} h`;
+  }
+
   getWorstParameterSeverity(): string {
     if (!this.selectedDeviceDetail || !this.latestReading) return 'ok';
     const deviceType = this.selectedDeviceDetail.device_type;
@@ -475,6 +518,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   private renderChart(points: TimeseriesPoint[]): void {
     this.lastChartPoints = points;
+    if (this.activeTab !== 'chart') {
+      return;
+    }
     const canvas = this.chartCanvas?.nativeElement;
     if (!canvas) {
       setTimeout(() => this.renderChart(points), 50);
